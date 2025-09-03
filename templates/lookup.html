@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-search"></i> IOC Lookup</h5>
+
+        <!-- Search Form -->
+        <form method="get" action="/lookup" class="form-inline mb-3">
+          <input type="text" name="q" class="form-control mr-2" placeholder="Enter IP, domain, or hash" style="width: 300px;" required value="{{ query if query else '' }}">
+          <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+        </form>
+
+        {% if query %}
+        <div class="alert alert-info">
+          <strong>Query:</strong> {{ query }} <br>
+          <strong>Threat Level:</strong> 
+          {% if threat_level == "High" %}
+            <span class="badge badge-danger">High</span>
+          {% elif threat_level == "Medium" %}
+            <span class="badge badge-warning">Medium</span>
+          {% elif threat_level == "Low" %}
+            <span class="badge badge-success">Low</span>
+          {% else %}
+            <span class="badge badge-secondary">Unknown</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Results Section -->
+{% if results %}
+<div class="row">
+  {% for source, data in results.items() %}
+  <div class="col-md-6">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-database"></i> {{ source | capitalize }}</h5>
+        <pre style="background:#f8f9fa; padding:10px; border-radius:5px; max-height:300px; overflow:auto;">
+{{ data | tojson(indent=2) }}
+        </pre>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

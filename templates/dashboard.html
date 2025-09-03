@@ -1,119 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Cyber Threat Intelligence Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background:#1e272e; color:#dfe6e9; margin:0; padding:0; }
-    header { background:#2d3436; padding:20px; text-align:center; }
-    header h1 { margin:0; color:#00cec9; }
-    .container { padding:20px; }
-    .card { background:#2f3640; padding:20px; border-radius:8px; margin-bottom:20px; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { padding:10px; border:1px solid #636e72; text-align:left; }
-    th { background:#00cec9; color:black; }
-    input[type=text] { padding:8px; width:250px; }
-    button { padding:8px 12px; background:#00cec9; border:none; cursor:pointer; border-radius:5px; }
-    button:hover { background:#81ecec; }
-    #charts { display:flex; gap:20px; flex-wrap:wrap; }
-    canvas { background:#1e272e; border-radius:8px; padding:10px; }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>🛡 Cyber Threat Intelligence Dashboard</h1>
-  </header>
+{% extends "base.html" %}
 
-  <div class="container">
-    <!-- IOC Lookup -->
-    <div class="card">
-      <h2>IOC Lookup</h2>
-      <form id="lookupForm" onsubmit="return runLookup(event)">
-        <input type="text" id="lookupInput" placeholder="Enter IP, domain, or hash..." required>
-        <button type="submit">Lookup</button>
-      </form>
-      <div id="lookupResults" style="margin-top:20px; display:none;">
-        <h3>Lookup Results</h3>
-        <pre id="lookupOutput" style="white-space:pre-wrap;"></pre>
+{% block content %}
+<div class="row">
+  <!-- IOC Summary Card -->
+  <div class="col-md-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-database"></i> IOC Summary</h5>
+        <p><strong>Total IOCs:</strong> {{ stats.total }}</p>
+        <p><strong>IPs:</strong> {{ stats.ip }}</p>
+        <p><strong>Domains:</strong> {{ stats.domain }}</p>
+        <p><strong>Hashes:</strong> {{ stats.hash }}</p>
       </div>
-    </div>
-<div>
-  <a href="/export/json" class="btn btn-secondary">Export JSON</a>
-  <a href="/export/csv" class="btn btn-secondary">Export CSV</a>
-</div>
-
-
-    <!-- Charts -->
-    <div id="charts">
-      <div class="card" style="flex:1;">
-        <h2>IOC Type Distribution</h2>
-        <canvas id="iocChart"></canvas>
-      </div>
-      <div class="card" style="flex:1;">
-        <h2>IOC Trends Over Time</h2>
-        <canvas id="trendChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Recent IOCs -->
-    <div class="card">
-      <h2>Recent IOCs</h2>
-      <table>
-        <tr><th>Type</th><th>Value</th><th>Timestamp</th></tr>
-        {% for r in recent %}
-        <tr>
-          <td>{{ r.type }}</td>
-          <td>{{ r.value }}</td>
-          <td>{{ r.timestamp }}</td>
-        </tr>
-        {% endfor %}
-      </table>
     </div>
   </div>
 
-  <script>
-    // Lookup
-    async function runLookup(event) {
-      event.preventDefault();
-      const query = document.getElementById("lookupInput").value;
-      const response = await fetch(`/lookup?q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-      document.getElementById("lookupResults").style.display = "block";
-      document.getElementById("lookupOutput").textContent = JSON.stringify(data, null, 2);
-      return false;
-    }
+  <!-- Recent IOCs -->
+  <div class="col-md-8">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-clock"></i> Recent IOCs</h5>
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Value</th>
+              <th>Type</th>
+              <th>Source</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ioc in recent %}
+            <tr>
+              <td>{{ ioc.value }}</td>
+              <td>{{ ioc.type }}</td>
+              <td>{{ ioc.source }}</td>
+              <td>{{ ioc.timestamp }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
-    // IOC Type Distribution Chart
-    const ctx1 = document.getElementById('iocChart').getContext('2d');
-    const chartData = {{ chart_data | tojson }};
-    new Chart(ctx1, {
-      type: 'pie',
-      data: {
-        labels: Object.keys(chartData),
-        datasets: [{
-          data: Object.values(chartData),
-          backgroundColor: ['#d63031','#0984e3','#00cec9','#6c5ce7','#fdcb6e']
-        }]
-      }
-    });
-
-    // IOC Trend Chart
-    const ctx2 = document.getElementById('trendChart').getContext('2d');
-    const trendData = {{ trend_data | tojson }};
-    new Chart(ctx2, {
-      type: 'line',
-      data: {
-        labels: trendData.map(d => d._id),
-        datasets: [{
-          label: 'IOCs per Day',
-          data: trendData.map(d => d.count),
-          fill:false,
-          borderColor:'#00cec9',
-          tension:0.1
-        }]
-      }
-    });
-  </script>
-</body>
-</html>
+<!-- IOC Lookup Section -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-search"></i> Quick IOC Lookup</h5>
+        <form method="get" action="/lookup" class="form-inline">
+          <input type="text" name="q" class="form-control mr-2" placeholder="Enter IP, domain, or hash" style="width: 300px;" required>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
