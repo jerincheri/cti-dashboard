@@ -1,0 +1,8 @@
+flask
+requests
+python-dateutil
+APScheduler
+reportlab
+werkzeug
+pymongo[srv]
+python-dotenv
